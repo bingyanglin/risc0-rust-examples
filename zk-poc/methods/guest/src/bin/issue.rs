@@ -17,22 +17,25 @@
 
 use risc0_zkvm::guest::{env, sha};
 
-use voting_machine_core::{FreezeVotingMachineCommit, FreezeVotingMachineParams};
+use zk_poc_core::{IssueTransactionCommit, IssueTransactionParams};
 
 risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
-    let params: FreezeVotingMachineParams = env::read();
+    let params: IssueTransactionParams = env::read();
     let result = params.process();
     env::write(&result);
-    let polls_open = result.state.polls_open;
-    let voter_bitfield = result.state.voter_bitfield;
-    let count = result.state.count;
-    env::commit(&FreezeVotingMachineCommit {
+
+    let receiver = params.transaction.receiver;
+    let sender = params.transaction.sender;
+    let tokens = result.tokens;
+    let transfer_counted = result.transfer_counted;
+    env::commit(&IssueTransactionCommit {
         old_state: *sha::digest(&params.state),
         new_state: *sha::digest(&result.state),
-        polls_open: polls_open,
-        voter_bitfield: voter_bitfield,
-        count: count,
+        receiver: receiver,
+        sender: sender,
+        tokens: tokens,
+        transfer_counted: transfer_counted,
     });
 }

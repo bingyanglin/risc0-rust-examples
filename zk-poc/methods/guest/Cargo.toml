@@ -1,12 +1,12 @@
 [workspace]
 
 [package]
-name = "voting-machine-methods-guest"
+name = "zk-poc-methods-guest"
 version = "0.12.0"
 edition = "2021"
 
 [dependencies]
-voting-machine-core = { path = "../../core" }
+zk-poc-core = { path = "../../core" }
 risc0-zkvm = { version = "0.12", default-features = false }
 
 [profile.release]

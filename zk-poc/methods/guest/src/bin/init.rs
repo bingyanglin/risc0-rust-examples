@@ -17,26 +17,13 @@
 
 use risc0_zkvm::guest::{env, sha};
 
-use voting_machine_core::{SubmitBallotCommit, SubmitBallotParams};
+use zk_poc_core::{InitializeLedgerCommit, LedgerState};
 
 risc0_zkvm::guest::entry!(main);
 
 pub fn main() {
-    let params: SubmitBallotParams = env::read();
-    let result = params.process();
-    env::write(&result);
-    let polls_open = result.state.polls_open;
-    let voter_bitfield = result.state.voter_bitfield;
-    let voter = params.ballot.voter;
-    let vote_yes = params.ballot.vote_yes;
-    let vote_counted = result.vote_counted;
-    env::commit(&SubmitBallotCommit {
-        old_state: *sha::digest(&params.state),
-        new_state: *sha::digest(&result.state),
-        polls_open: polls_open,
-        voter_bitfield: voter_bitfield,
-        voter: voter,
-        vote_yes: vote_yes,
-        vote_counted: vote_counted,
+    let state: LedgerState = env::read();
+    env::commit(&InitializeLedgerCommit {
+        state: *sha::digest(&state),
     });
 }
