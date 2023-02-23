@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::result;
+
 use risc0_zkvm::serde::{from_slice, to_vec};
 use risc0_zkvm::{Prover, Receipt, Result};
 use zk_poc_core:: {
@@ -19,8 +21,7 @@ use zk_poc_core:: {
 };
 use zk_poc_methods::{INIT_ELF, INIT_ID, ISSUE_ELF, ISSUE_ID};
 
-
-
+// ISSUE_ID example: 518d645764f68f610551de2d70ba085cf0fe7d8011a97e5c5e5f6c419fd3fa7d
 
 pub struct InitMessage {
     receipt: Receipt,
@@ -44,6 +45,13 @@ pub struct IssueTransactionMessage {
 impl IssueTransactionMessage {
     pub fn get_commit(&self) -> Result<IssueTransactionCommit> {
         Ok(from_slice(&self.receipt.journal).unwrap())
+    }
+
+    pub fn verity(&self) -> Result<bool> {
+        match self.receipt.verify(ISSUE_ID) {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
+        }
     }
 
     pub fn verify_and_get_commit(&self) -> Result<IssueTransactionCommit> {
@@ -136,12 +144,15 @@ mod tests {
         let init_state = init_msg.verify_and_get_commit();
         let transaction_commit1 = transaction_msg1.verify_and_get_commit();
         let transaction_commit2 = transaction_msg2.verify_and_get_commit();
-    
+        let transaction_commit1_verify = transaction_msg1.verity();
+        let transaction_commit2_verify = transaction_msg2.verity();
 
         log::info!("initial commit: {:?}", init_state);
         log::info!("transaction 1: {:?}", transaction1);
         log::info!("transaction 1 commit: {:?}", transaction_commit1);
+        log::info!("transaction 1 verify result: {:?}", transaction_commit1_verify);
         log::info!("transaction 2: {:?}", transaction2);
         log::info!("transaction 2 commit: {:?}", transaction_commit2);
+        log::info!("transaction 2 verify result: {:?}", transaction_commit2_verify);
     }
 }

@@ -3,4 +3,6 @@ members = [
   "core",
   "host",
   "methods",
+  "client",
+  "server",
 ]

@@ -1,0 +1,27 @@
+syntax = "proto3";
+package vm;
+
+service Vm {
+  rpc CreateReceipt (CreateReceiptRequest) returns (CreateReceiptResponse);
+  rpc Validation (ValidationRequest) returns (ValidationResponse);
+}
+
+message CreateReceiptRequest {
+  bytes transaction = 1;
+  bytes signatures = 2;
+  bytes ledger_state = 3;
+}
+
+message ValidationRequest {
+  bytes receipt = 1;
+  int32 method_id = 2;
+}
+
+message CreateReceiptResponse {
+  bytes receipt = 1;
+  bytes new_ledger_state = 2;
+}
+
+message ValidationResponse {
+  bool valid = 1;
+}
