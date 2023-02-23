@@ -1,15 +1,15 @@
 use std::io::stdin;
-use vm::{vm_client::VmClient, CreateReceiptRequest, ValidationRequest};
-use zk_poc_core:: {
-    Transaction, InitializeLedgerCommit, IssueTransactionCommit, IssueTransactionParams, IssueTransactionResult, LedgerState,
-};
+
+use vm::vm_client::VmClient;
+use vm::{CreateReceiptRequest, ValidationRequest};
+use zk_poc_core::{LedgerState, Transaction};
 use zk_poc_methods::{INIT_ELF, INIT_ID, ISSUE_ELF, ISSUE_ID};
 extern crate alloc;
-use alloc::{string::String};
 use alloc::collections::btree_map::BTreeMap;
-use log::LevelFilter;
-use serde::{Serialize, Deserialize};
+use alloc::string::String;
 
+use log::LevelFilter;
+use serde::{Deserialize, Serialize};
 
 pub mod vm {
     tonic::include_proto!("vm");
@@ -60,8 +60,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             });
             let response = client.create_receipt(request).await?;
             let response = response.into_inner();
-            println!("Got\n1) Receipt: '{:?}'\n2) new_ledger_state: '{:?}'\nfrom service", 
-                        response.receipt, response.new_ledger_state);
+            println!(
+                "Got\n1) Receipt: '{:?}'\n2) new_ledger_state: '{:?}'\nfrom service",
+                response.receipt, response.new_ledger_state
+            );
         } else if cv == "v" {
             println!("Please provide receipt: ");
             let mut receipt = String::new();
@@ -71,9 +73,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut method_id = String::new();
             stdin().read_line(&mut method_id).unwrap();
             let method_id = method_id.trim().parse::<i32>().unwrap();
-            
+
             let request = tonic::Request::new(ValidationRequest {
-                receipt: bincode::deserialize(&receipt.as_bytes()).unwrap(),
+                receipt: bincode::deserialize(&receipt.as_bytes())?,
                 method_id: method_id,
             });
             let response = client.validation(request).await?;

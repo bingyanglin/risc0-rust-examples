@@ -1,18 +1,19 @@
-use tonic::{transport::Server, Request, Response, Status};
-use vm::{CreateReceiptRequest, ValidationRequest, CreateReceiptResponse, ValidationResponse,
-         vm_server::{Vm, VmServer}};
 use risc0_zkvm::serde::{from_slice, to_vec};
 use risc0_zkvm::{Prover, Receipt, Result};
-use zk_poc_core:: {
-    Transaction, InitializeLedgerCommit, IssueTransactionCommit, IssueTransactionParams, IssueTransactionResult, LedgerState,
+use tonic::transport::Server;
+use tonic::{Request, Response, Status};
+use vm::vm_server::{Vm, VmServer};
+use vm::{CreateReceiptRequest, CreateReceiptResponse, ValidationRequest, ValidationResponse};
+use zk_poc_core::{
+    InitializeLedgerCommit, IssueTransactionCommit, IssueTransactionParams, IssueTransactionResult,
+    LedgerState, Transaction,
 };
 use zk_poc_methods::{INIT_ELF, INIT_ID, ISSUE_ELF, ISSUE_ID};
 extern crate alloc;
-use alloc::{string::String};
+use alloc::string::String;
+
 use log::LevelFilter;
-use serde::{Serialize, Deserialize};
-
-
+use serde::{Deserialize, Serialize};
 
 // Add the trait to let this structure can be deserialized from JSON
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,11 +21,9 @@ pub struct InitMessage {
     receipt: Receipt,
 }
 
-
 pub mod vm {
     tonic::include_proto!("vm");
 }
-
 
 impl InitMessage {
     pub fn get_state(&self) -> Result<InitializeLedgerCommit> {
@@ -74,7 +73,6 @@ impl IssueTransactionMessage {
     }
 }
 
-
 #[derive(Debug)]
 pub struct LedgerMaintainer {
     state: LedgerState,
@@ -114,18 +112,17 @@ impl LedgerMaintainer {
     }
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let address = "[::1]:8080".parse().unwrap();
     let vm_service = VMService::default();
     env_logger::builder().filter_level(LevelFilter::Info).init();
 
-    Server::builder().add_service(VmServer::new(vm_service))
+    Server::builder()
+        .add_service(VmServer::new(vm_service))
         .serve(address)
         .await?;
     Ok(())
-        
 }
 
 #[derive(Debug, Default)]
@@ -133,27 +130,33 @@ pub struct VMService {}
 
 #[tonic::async_trait]
 impl Vm for VMService {
-    async fn create_receipt(&self, request: Request<CreateReceiptRequest>) -> Result<Response<CreateReceiptResponse>, Status> {
+    async fn create_receipt(
+        &self,
+        request: Request<CreateReceiptRequest>,
+    ) -> Result<Response<CreateReceiptResponse>, Status> {
         let r = request.into_inner();
 
         // Get the transaction, signatures, and ledger_state from the request
         let transaction: Transaction = bincode::deserialize(r.transaction.as_slice()).unwrap();
         let _signatures: String = bincode::deserialize(r.signatures.as_slice()).unwrap();
         let ledger_state: LedgerState = bincode::deserialize(r.ledger_state.as_slice()).unwrap();
-        
+
         // Create a new ledger maintainer with the ledger state
         let mut ledger_maintainer = LedgerMaintainer::new(ledger_state);
-        
+
         // Issue the transaction
         let transaction_message = ledger_maintainer.issue(&transaction).unwrap();
         let receipt = transaction_message.get_receipt();
 
-        return Ok(Response::new(vm::CreateReceiptResponse { 
+        return Ok(Response::new(vm::CreateReceiptResponse {
             receipt: bincode::serialize(&receipt).unwrap(),
             new_ledger_state: bincode::serialize(&ledger_maintainer.get_state()).unwrap(),
         }));
     }
-    async fn validation(&self, request: Request<ValidationRequest>) -> Result<Response<ValidationResponse>, Status> {
+    async fn validation(
+        &self,
+        request: Request<ValidationRequest>,
+    ) -> Result<Response<ValidationResponse>, Status> {
         let r = request.into_inner();
 
         // Get the receipt and the method_id from the request
