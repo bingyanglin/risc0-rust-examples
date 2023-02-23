@@ -1,15 +1,12 @@
 use std::io::stdin;
 
+use risc0_zkvm::Receipt;
 use vm::vm_client::VmClient;
 use vm::{CreateReceiptRequest, ValidationRequest};
 use zk_poc_core::{LedgerState, Transaction};
-use zk_poc_methods::{INIT_ELF, INIT_ID, ISSUE_ELF, ISSUE_ID};
 extern crate alloc;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::String;
-
-use log::LevelFilter;
-use serde::{Deserialize, Serialize};
 
 pub mod vm {
     tonic::include_proto!("vm");
@@ -25,6 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         addresses: addresses,
         transfer_count: 0,
     };
+
+    let mut receipt_temp: Vec<u8> = Vec::new();
     loop {
         println!("\nCreateReceiptRequest or ValidationRequest? (c/v)");
         let mut cv = String::new();
@@ -64,6 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Got\n1) Receipt: '{:?}'\n2) new_ledger_state: '{:?}'\nfrom service",
                 response.receipt, response.new_ledger_state
             );
+            receipt_temp = response.receipt;
         } else if cv == "v" {
             println!("Please provide receipt: ");
             let mut receipt = String::new();
@@ -75,7 +75,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let method_id = method_id.trim().parse::<i32>().unwrap();
 
             let request = tonic::Request::new(ValidationRequest {
-                receipt: bincode::deserialize(&receipt.as_bytes())?,
+                // receipt:  bincode::serialize(&receipt).unwrap(),
+                receipt: receipt_temp.clone().into(),
                 method_id: method_id,
             });
             let response = client.validation(request).await?;
